@@ -1,51 +1,37 @@
 from tkinter import *
 from tkinter import ttk
 from constants import *
+from part import *
 
 def snap(x):
-    '''Snaps a position x to the grid'''
     return x - (x % GRID_SIZE)
-
 class Schematic(Canvas):
-    current_ghost = None
-    wire_color = 'Black'
-    wire_width = 5
-    hasFixedFirstPosition = False
-    init_x0 = 0
-    init_y0 = 0
-
     def __init__(self, root, **kwargs):
         super().__init__(root, **kwargs)
-    
-    def delete_ghost(self):
-        if (self.current_ghost != None):
-            self.delete(self.current_ghost)
+        self.ghost = None
+        self.thewindow = None
+        self.configure(background=SCHEMATIC_BACKGROUND, width=SCHEMATIC_WIDTH, height=SCHEMATIC_HEIGHT)
+        self.bind('<Motion>', self.drawGhost)
+        self.drawGrid()
 
-    def draw_ghost(self, e):
-        self.delete_ghost()
-        if not self.hasFixedFirstPosition:
-            self.init_x0 = e.x
-            self.init_y0 = e.y
+    def drawGrid(self):
+        xmax = SCHEMATIC_WIDTH
+        ymax = SCHEMATIC_HEIGHT
+        for x in range(0, xmax, GRID_SIZE):
+            self.create_line(x, 0, x, ymax)
+        for y in range(0, ymax, GRID_SIZE):
+            self.create_line(0, y, xmax, y)
 
-        self.current_ghost = self.draw_wire(self.init_x0, self.init_y0, e.x, e.y)
-    
-    def draw(self, e):
-        if self.hasFixedFirstPosition:
-            self.hasFixedFirstPosition = False
-            self.draw_wire(self.init_x0, self.init_y0, e.x, e.y)
-        else:
-            self.init_x0 = e.x
-            self.init_y0 = e.y
-            self.hasFixedFirstPosition = True
+    def drawGhost(self, e):
+        e.x, e.y = snap(e.x), snap(e.y)
 
-    def draw_wire(self, x0, y0, x1, y1):
-        x0, y0, x1, y1 = snap(x0), snap(y0), snap(x1), snap(y1) # snaps coords to top left grid
+        if self.ghost == None:
+            self.ghost = ResistorWidget(self)
+            self.thewindow = self.create_window(e.x,e.y,window=self.ghost)
+        self.moveto(self.thewindow, e.x, e.y)
+
+
+#schematic.bind('<1>', schematic.draw)
+
         
-        # routes to shortest path to make it look nice
-        pos1 = (x0, y0, x1, y0) if abs(x1 - x0) > abs(y1 - y0) else (x0, y0, x0, y1)
-        pos2 = (pos1[2], pos1[3], x1, y1)
-        return self.create_line(pos1, pos2, fill=self.wire_color, width=self.wire_width)
-
-    def create_wire(self, x0, y0, x1, y1):
-        pass
-        
+    
