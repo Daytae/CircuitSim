@@ -1,5 +1,6 @@
 from constants import *
 from part import *
+from modes import *
 
 # Schematic is the main drawing window, a modified canvas where all parts will be drawn
     
@@ -16,51 +17,43 @@ class Schematic(Canvas):
         )
 
         # Local Schematic Variables
-        self.doesDrawGhost = False
         self.ghost = None    # Current displayed ghost object
-        self.ghostid = None
+        self.mode = ViewingMode
         self.circuitElements = []
-        self.mode = 'R'
-
-        # Initialization of board visuals
         self.drawGrid()
     
-    def toggleGhost(self):
-        # toggles the ghost
-        pass
-
-    
-    def toggleResistorMode(self, onOrOff):
-        if onOrOff == True: #ie toggling it on
-            print("ON")
+    def setGhost(self, shouldDrawGhost, e):
+        # deletes old ghost
+        if(self.ghost != None):
+            self.delete(self.ghost.tag)
+        
+        if shouldDrawGhost:
             self.bind('<Motion>', self.drawGhost)
+            self.ghost = self.mode.part(self, snap(e.x), snap(e.y))
+            self.tag_bind(self.ghost.tag, sequence='<1>', func=self.placeImage)
+            self.drawGhost(e)
         else:
-            print("OFF")
-            if(self.ghost != None):
-                self.delete(self.ghost.nodeid)
-                self.delete(self.ghost.id)
-            self.ghost = None
-            self.ghostid = None
-            self.unbind('<Motion>')     
+             self.unbind('<Motion>') 
 
     def drawGrid(self):
         xmax = SCHEMATIC_WIDTH
         ymax = SCHEMATIC_HEIGHT
         for x in range(0, xmax, GRID_SIZE):
-            self.create_line(x, 0, x, ymax)
+            self.create_line(x, 0, x, ymax, fill='Gray')
         for y in range(0, ymax, GRID_SIZE):
-            self.create_line(0, y, xmax, y)
+            self.create_line(0, y, xmax, y, fill='Gray')
 
     def placeImage(self, e):
         self.circuitElements.append(self.ghost)
-        self.ghost = None
+        self.ghost = self.mode.part(self, snap(e.x), snap(e.y))
+        self.tag_bind(self.ghost.tag, sequence='<1>', func=self.placeImage)
 
     def drawGhost(self, e):
-        if self.ghost == None:
-            self.ghost = Resistor(self, snap(e.x), snap(e.y))
-            self.tag_bind(self.ghost.tag, sequence='<1>', func=self.placeImage)
-        
-        # top left corner of ghost image
         self.ghost.moveItem(e)
         
+    def toggleMode(self, mode, e):
+    # allows toggling
+        self.mode = ViewingMode if self.mode == mode else mode
+        print(str(self.mode.name))
+        self.mode.setup(self, e)
         
